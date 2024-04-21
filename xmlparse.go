@@ -88,10 +88,10 @@ func printnode(n *Node, depth int) {
 	fmt.Println(indent, "Name", n.name)
 	fmt.Println(indent, "Text", n.text)
 	for k, v := range n.attrs {
-		fmt.Println(indent, "key", k, "val", string(v) )
+		fmt.Println(indent, "key", k, "val", string(v))
 	}
-	fmt.Println(indent, "N children", len(n.children) )
-        fmt.Println("")
+	fmt.Println(indent, "N children", len(n.children))
+	fmt.Println("")
 }
 func newnode(tok xml.StartElement) *Node {
 	var n *Node
@@ -112,6 +112,7 @@ func XMLDecode(rc io.Reader) *Node {
 	var Nodestack []*Node // stack of element names
 
 	dec := xml.NewDecoder(rc)
+	dec.Strict = false
 
 	for {
 		tok, err := dec.Token()
@@ -139,8 +140,10 @@ func XMLDecode(rc io.Reader) *Node {
 			Nodestack = Nodestack[:len(Nodestack)-1] // pop
 
 		case xml.CharData:
-			node = Nodestack[len(Nodestack)-1]
-			node.text = string(tok)
+			if len(Nodestack) > 0 {
+				node = Nodestack[len(Nodestack)-1]
+				node.text = string(tok)
+			}
 		case xml.Comment:
 		case xml.ProcInst:
 		case xml.Directive:
