@@ -16,11 +16,11 @@ import (
 var url = ""
 var file = ""
 
-type Node struct {
-	name     string
-	text     string
-	attrs    map[string]string
-	children []*Node
+type node struct {
+	Name     string				`json:"name"`
+	Text     string				`json:"text"`
+	Attrs    map[string]string		`json:"attrs"`
+	Children []*node			`json:"children"`
 }
 
 func init() {
@@ -30,7 +30,7 @@ func init() {
 }
 
 func main() {
-	var r *Node
+	var r *node
 	if url == "" && file == "" {
 		fmt.Println("no url of file provided")
 		return
@@ -50,22 +50,20 @@ func main() {
 		}
 		r = XMLDecode(f)
 	}
-	dumpnodes(r, 0)
-	//var ra []*Node
-	//ra = append(ra, r)
-	//dumpjson(ra)
+	//dumpnodes(r, 0)
+	dumpjson(r)
 }
 
-func dumpnodes(n *Node, x int) {
+func dumpnodes(n *node, x int) {
 	printnode(n, x)
-	for i := range n.children {
-		c := n.children[i]
+	for i := range n.Children {
+		c := n.Children[i]
 		dumpnodes(c, x+1)
 	}
 }
 
-func dumpjson(n []*Node) {
-	data, err := json.Marshal(n)
+func dumpjson(n *node) {
+	data, err := json.MarshalIndent(n, "", "	")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,34 +80,34 @@ func makeindent(depth int) string {
 	return strings.Repeat("	", depth)
 }
 
-func printnode(n *Node, depth int) {
+func printnode(n *node, depth int) {
 	var indent = makeindent(depth)
-	fmt.Println(indent, "depth", depth)
-	fmt.Println(indent, "Name", n.name)
-	fmt.Println(indent, "Text", n.text)
-	for k, v := range n.attrs {
-		fmt.Println(indent, "key", k, "val", string(v))
+	fmt.Println(indent, "Depth:", depth)
+	fmt.Println(indent, "Name:", n.Name)
+	fmt.Println(indent, "Text:", n.Text)
+	for k, v := range n.Attrs {
+		fmt.Println(indent, "Key:", k, "Val:", string(v))
 	}
-	fmt.Println(indent, "N children", len(n.children))
+	fmt.Println(indent, "Children:", len(n.Children))
 	fmt.Println("")
 }
-func newnode(tok xml.StartElement) *Node {
-	var n *Node
-	n = new(Node)
-	n.attrs = make(map[string]string, 0)
-	n.children = make([]*Node, 0)
+func newnode(tok xml.StartElement) *node {
+	var n *node
+	n = new(node)
+	n.Attrs = make(map[string]string, 0)
+	n.Children = make([]*node, 0)
 
-	n.name = tok.Name.Local
+	n.Name = tok.Name.Local
 	for _, a := range tok.Attr {
-		n.attrs[a.Name.Local] = a.Value
+		n.Attrs[a.Name.Local] = a.Value
 	}
 	return n
 }
 
-func XMLDecode(rc io.Reader) *Node {
+func XMLDecode(rc io.Reader) *node {
 
-	var root, node *Node
-	var Nodestack []*Node // stack of element names
+	var root, nod *node
+	var Nodestack []*node // stack of element names
 
 	dec := xml.NewDecoder(rc)
 	dec.Strict = false
@@ -125,15 +123,15 @@ func XMLDecode(rc io.Reader) *Node {
 		switch tok := tok.(type) {
 		case xml.StartElement:
 
-			node = newnode(tok)
+			nod = newnode(tok)
 			if len(Nodestack) == 0 {
-				root = node
+				root = nod
 			} else {
-				var pnode *Node
+				var pnode *node
 				pnode = Nodestack[len(Nodestack)-1]
-				pnode.children = append(pnode.children, node)
+				pnode.Children = append(pnode.Children, nod)
 			}
-			Nodestack = append(Nodestack, node)
+			Nodestack = append(Nodestack, nod)
 
 		case xml.EndElement:
 
@@ -141,9 +139,11 @@ func XMLDecode(rc io.Reader) *Node {
 
 		case xml.CharData:
 			if len(Nodestack) > 0 {
-				node = Nodestack[len(Nodestack)-1]
-				node.text = string(tok)
-			}
+				nod = Nodestack[len(Nodestack)-1]
+				nod.Text = string(tok)
+			} else {
+                            //fmt.Println("bare CharData", string(tok) )
+                        }
 		case xml.Comment:
 		case xml.ProcInst:
 		case xml.Directive:
