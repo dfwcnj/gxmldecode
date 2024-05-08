@@ -107,7 +107,7 @@ func newnode(tok xml.StartElement) *node {
 func XMLDecode(rc io.Reader) *node {
 
 	var root, nod *node
-	var Nodestack []*node // stack of element names
+	var Nodestack []*node // stack of node pointers
 
 	dec := xml.NewDecoder(rc)
 	dec.Strict = false
